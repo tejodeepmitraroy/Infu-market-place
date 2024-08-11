@@ -18,7 +18,7 @@ def csvCreator(data: list[any], schema: list[str], csv_filepath: str):
     new_data = new_data.dropna(how="all")
 
     if not new_data.empty:
-        df_combined = pd.concat([df_existing, new_data]).drop_duplicates(
+        df_combined = pd.concat([new_data, df_existing]).drop_duplicates(
             subset=[schema[0]]
         )
 

@@ -1,11 +1,12 @@
 from src.scraper.user_scraper import (
-    instagramUserScraper,instagramUserDataScraper,
-    youtubeUserDataScraper,
+    youtubeUserScraper,
 )
-from src.scraper.post_scraper import instagramUserPostScraper, youtubeUserPostScraper
+from src.scraper.post_scraper import instagramUserPostScraper
 
-instagramUserScraper("shrutikasharmaaa")
+
+# instagramUserScraper("shrutikasharmaaa")
 # instagramUserDataScraper("shrutikasharmaaa")
 # instagramUserPostScraper("mrbeast")
-# youtubeUserDataScraper("mrbeast")
-# youtubeUserPostScraper()
+
+
+youtubeChannelsScraper("motoblogger")
