@@ -1,5 +1,6 @@
 postSchema = [
     "post_id",
+    "user_id",
     "location",
     "hashtags",
     "likes_count",

@@ -1,6 +1,7 @@
 user_schema = [
     "user_id",
     "username",
+    "category",
     "full_name",
     "post_count",
     "post_frequency",

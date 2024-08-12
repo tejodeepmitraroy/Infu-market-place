@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from src.schemas.user_schema import user_schema, searched_user_schema
 from src.scraper.post_scraper import instagramUserPostScraper, youtubeUserVideosScraper
 from src.utils.csv_creator import csvCreator
-from src.utils.post_frequency_counter import post_frequency_counter
+from src.utils.difference_between_csv import difference_between_csv
+from src.utils.difference_between_list import difference_between_list
 from src.utils.csv_to_list import csv_to_list
 
 
@@ -52,26 +53,62 @@ def instagramUserScraper(user):
                     {
                         "user_id": item.get("id"),
                         "username": item.get("username"),
-                        # "full_name": item.get("full_name"),
                     }
                 )
 
             csvCreator(
                 extracted_data,
                 searched_user_schema,
-                "./csv/instagram/searched_user.csv",
+                "./csv/instagram/searched_users.csv",
             )
 
-            searched_user_id = csv_to_list(
-                "./csv/instagram/searched_user.csv", "user_id"
-            )
+            # if os.path.exists("./csv/instagram/user.csv"):
+            if os.path.exists("./csv/instagram/rejected_user.csv"):
+                non_rejected_users = difference_between_csv(
+                    "./csv/instagram/searched_users.csv",
+                    "./csv/instagram/rejected_user.csv",
+                    "user_id",
+                    "user_id",
+                )
 
-            for id in range(4):
-                instagramUserDataScraper(searched_user_id[id])
+                user_ids = csv_to_list("./csv/instagram/user.csv", "user_id")
 
-            filtered_users_ids = csv_to_list("./csv/instagram/user.csv", "user_id")
+                if user_ids:
+                    unique_users = difference_between_list(non_rejected_users, user_ids)
+                else:
+                    unique_users = non_rejected_users
+            else:
+                searched_user_ids = csv_to_list(
+                    "./csv/instagram/searched_users.csv", "user_id"
+                )
+
+                unique_users = searched_user_ids
+
+            # print(non_rejected_users)
+            # print(unique_users)
+
+            # for id in unique_users:
+            #     instagramUserDataScraper(unique_users[id])
+
+            for user_id in unique_users:
+                instagramUserDataScraper(user_id)
+
+
+            if os.path.exists("./csv/instagram/post.csv"):
+                filtered_users_ids = non_existed_users = difference_between_csv(
+                    "./csv/instagram/user.csv",
+                    "./csv/instagram/post.csv",
+                    "user_id",
+                    "user_id",
+                )
+            else:
+                filtered_users_ids = csv_to_list("./csv/instagram/user.csv", "user_id")
+
+
+            print("This is not existed users in Post DB ====> /n",non_existed_users)
 
             if filtered_users_ids:
+                print("Initiating Instagram Post Scrapping")
                 for user_id in filtered_users_ids:
                     instagramUserPostScraper(user_id)
 
@@ -79,7 +116,7 @@ def instagramUserScraper(user):
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)
 
 
 def instagramUserDataScraper(user_id: str):
@@ -99,19 +136,30 @@ def instagramUserDataScraper(user_id: str):
         data = response.json()
 
         if "data" in data:
-
             userData = data["data"]
 
-            if userData["about"]["country"] == "India" and (
-                userData["follower_count"] >= 5000
-                and userData["follower_count"] <= 100000
+            print(userData.get("follower_count"))
+
+            if (
+                userData["about"]["country"] == "India"
+                and userData.get("follower_count")
+                and (
+                    userData.get("follower_count") >= 5000
+                    and userData.get("follower_count") <= 100000
+                )
             ):
+
                 modify_user_data = {
                     "user_id": userData.get("id"),
                     "username": userData.get("username"),
+                    "category": userData.get("category"),
                     "full_name": userData.get("full_name"),
                     "post_count": userData.get("media_count"),
-                    "post_frequency": userData.get("media_count") / 5,
+                    "post_frequency": (
+                        userData.get("media_count") / 5
+                        if userData.get("media_count")
+                        else None
+                    ),
                     "follower_count": userData.get("follower_count"),
                 }
 
@@ -120,13 +168,32 @@ def instagramUserDataScraper(user_id: str):
                     user_schema,
                     "./csv/instagram/user.csv",
                 )
-
             else:
-                print("User is not Indian")
+                modify_user_data = {
+                    "user_id": userData.get("id"),
+                    "username": userData.get("username"),
+                    "category": userData.get("category"),
+                    "full_name": userData.get("full_name"),
+                    "post_count": userData.get("media_count"),
+                    "post_frequency": (
+                        userData.get("media_count") / 5
+                        if userData.get("media_count")
+                        else None
+                    ),
+                    "follower_count": userData.get("follower_count"),
+                }
+
+                csvCreator(
+                    [modify_user_data],
+                    user_schema,
+                    "./csv/instagram/rejected_user.csv",
+                )
+
+                print("User is not Indian Or Follower Count range is not satisfied")
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)
 
 
 def youtubeChannelsScraper(search: str):
@@ -195,17 +262,20 @@ def youtubeChannelsScraper(search: str):
             csvCreator(
                 extracted_searched_channels,
                 searched_user_schema,
-                "./csv/youtube/searched_user.csv",
+                "./csv/youtube/searched_users.csv",
             )
 
             searched_user_ids = csv_to_list(
-                "./csv/youtube/searched_user.csv", "user_id"
+                "./csv/youtube/searched_users.csv", "user_id"
             )
 
             # print("Youtube Searched Id---------->/n", searched_user_ids)
 
-            for id in range(2):
-                youtubeUserDataScraper(searched_user_ids[id])
+            # for id in range(2):
+            #     youtubeUserDataScraper(searched_user_ids[id])
+
+            for user_id in searched_user_ids:
+                youtubeUserDataScraper(user_id)
 
             filtered_users_ids = csv_to_list("./csv/youtube/user.csv", "user_id")
 

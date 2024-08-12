@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from src.schemas.post_schema import postSchema, searched_youtube_user_video_Schema
 from src.utils.csv_creator import csvCreator
 from src.utils.csv_to_list import csv_to_list
-from src.utils.post_frequency_counter import post_frequency_counter
 
 
 load_dotenv()
@@ -51,11 +50,12 @@ def instagramUserPostScraper(user_id: str):
                 extracted_post_data.append(
                     {
                         "post_id": item.get("id"),
+                        "user_id": user_id,
                         "location": item.get("location"),
-                        "hashtags": item.get("caption").get("hashtags"),
+                        "hashtags": item.get("caption").get("hashtags") if item.get("caption") else [],
                         "likes_count": item.get("like_count"),
                         "comment_count": item.get("comment_count"),
-                        "created_at": item.get("caption").get("created_at"),
+                        "created_at": item.get("caption").get("created_at") if item.get("caption") else None,
                     }
                 )
 
@@ -146,8 +146,9 @@ def youtubeVideoDataScraper(video_ids: list[str]):
                 extracted_videos_data.append(
                     {
                         "post_id": item["id"],
+                        "user_id": item["snippet"]["channelId"],
                         "location": "",
-                        "hashtags": '',
+                        "hashtags": "",
                         "likes_count": item["statistics"]["likeCount"],
                         "comment_count": item["statistics"]["commentCount"],
                         "created_at": item["snippet"]["publishedAt"],
