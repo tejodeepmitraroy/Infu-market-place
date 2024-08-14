@@ -1,5 +1,5 @@
-from src.scraper.user_scraper import youtubeChannelsScraper, instagramUserScraper
-from src.scraper.post_scraper import instagramUserPostScraper
+from src.scraper.user_scraper import youtubeChannelScraper, instagramUserScraper
 
-instagramUserScraper("ig_mortal")
-# youtubeChannelsScraper("motoblogger")
+
+# instagramUserScraper("motorinc.official")
+youtubeChannelScraper("Abhi and Niyu")

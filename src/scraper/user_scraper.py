@@ -2,7 +2,11 @@ import requests
 import os
 from dotenv import load_dotenv
 from src.schemas.user_schema import user_schema, searched_user_schema
-from src.scraper.post_scraper import instagramUserPostScraper, youtubeUserVideosScraper
+from src.scraper.post_scraper import (
+    instagramUserPostScraper,
+    youtubeChannelVideosScraper,
+    youtubeVideoDataScraper,
+)
 from src.utils.csv_creator import csvCreator
 from src.utils.difference_between_csv import difference_between_csv
 from src.utils.difference_between_list import difference_between_list
@@ -62,7 +66,7 @@ def instagramUserScraper(user):
                 "./csv/instagram/searched_users.csv",
             )
 
-            # if os.path.exists("./csv/instagram/user.csv"):
+            # if os.path.exists("./csv/instagram/rejected_user.csv"):
             if os.path.exists("./csv/instagram/rejected_user.csv"):
                 non_rejected_users = difference_between_csv(
                     "./csv/instagram/searched_users.csv",
@@ -93,9 +97,8 @@ def instagramUserScraper(user):
             for user_id in unique_users:
                 instagramUserDataScraper(user_id)
 
-
             if os.path.exists("./csv/instagram/post.csv"):
-                filtered_users_ids = non_existed_users = difference_between_csv(
+                filtered_users_ids = difference_between_csv(
                     "./csv/instagram/user.csv",
                     "./csv/instagram/post.csv",
                     "user_id",
@@ -104,8 +107,7 @@ def instagramUserScraper(user):
             else:
                 filtered_users_ids = csv_to_list("./csv/instagram/user.csv", "user_id")
 
-
-            print("This is not existed users in Post DB ====> /n",non_existed_users)
+            print("This is not existed users in Post DB ====> /n", filtered_users_ids)
 
             if filtered_users_ids:
                 print("Initiating Instagram Post Scrapping")
@@ -168,6 +170,7 @@ def instagramUserDataScraper(user_id: str):
                     user_schema,
                     "./csv/instagram/user.csv",
                 )
+                print("User is Added in instagram/user.csv")
             else:
                 modify_user_data = {
                     "user_id": userData.get("id"),
@@ -196,7 +199,7 @@ def instagramUserDataScraper(user_id: str):
         print("Request failed with status code", response.status_code)
 
 
-def youtubeChannelsScraper(search: str):
+def youtubeChannelScraper(search: str):
     headers = {
         "x-rapidapi-key": youtubeApiKey,
         "x-rapidapi-host": youtubeApiHost,
@@ -213,23 +216,10 @@ def youtubeChannelsScraper(search: str):
     # }
 
     # Delhi based Users
-    querystring = {
-        "part": "snippet,id",
-        "key": youtubeKey,
-        "location": "28.664470662634336, 77.10763707905652",
-        "locationRadius": "1000km",
-        "maxResults": "50",
-        "q": search,
-        "regionCode": "In",
-        "relevanceLanguage": "hi",
-        "type": "video",
-    }
-
-    # # Kolkata based Users
     # querystring = {
-    #     "part": "snippet",
+    #     "part": "snippet,id",
     #     "key": youtubeKey,
-    #     "location": "22.525258565355376, 88.34975242640142",
+    #     "location": "28.664470662634336, 77.10763707905652",
     #     "locationRadius": "1000km",
     #     "maxResults": "50",
     #     "q": search,
@@ -237,6 +227,19 @@ def youtubeChannelsScraper(search: str):
     #     "relevanceLanguage": "hi",
     #     "type": "video",
     # }
+
+    # # Kolkata based Users
+    querystring = {
+        "part": "snippet",
+        "key": youtubeKey,
+        "location": "22.525258565355376, 88.34975242640142",
+        "locationRadius": "1000km",
+        "maxResults": "50",
+        "q": search,
+        "regionCode": "In",
+        "relevanceLanguage": "hi",
+        "type": "video",
+    }
 
     response = requests.get(
         youtubeApiUrl + "/search", headers=headers, params=querystring
@@ -265,32 +268,81 @@ def youtubeChannelsScraper(search: str):
                 "./csv/youtube/searched_users.csv",
             )
 
-            searched_user_ids = csv_to_list(
-                "./csv/youtube/searched_users.csv", "user_id"
-            )
+            # if os.path.exists("./csv/youtube/rejected_user.csv"):
+            if os.path.exists("./csv/youtube/rejected_user.csv"):
+                non_rejected_users = difference_between_csv(
+                    "./csv/youtube/searched_users.csv",
+                    "./csv/youtube/rejected_user.csv",
+                    "user_id",
+                    "user_id",
+                )
 
-            # print("Youtube Searched Id---------->/n", searched_user_ids)
+                user_ids = csv_to_list("./csv/youtube/user.csv", "user_id")
 
-            # for id in range(2):
-            #     youtubeUserDataScraper(searched_user_ids[id])
+                if user_ids:
+                    unique_users = difference_between_list(non_rejected_users, user_ids)
+                else:
+                    unique_users = non_rejected_users
+            else:
+                searched_user_ids = csv_to_list(
+                    "./csv/youtube/searched_users.csv", "user_id"
+                )
 
-            for user_id in searched_user_ids:
-                youtubeUserDataScraper(user_id)
+                unique_users = searched_user_ids
 
-            filtered_users_ids = csv_to_list("./csv/youtube/user.csv", "user_id")
+            for user_id in unique_users:
+                youtubeChannelDataScraper(user_id)
+
+            if os.path.exists("./csv/youtube/post.csv"):
+                filtered_users_ids = difference_between_csv(
+                    "./csv/youtube/user.csv",
+                    "./csv/youtube/post.csv",
+                    "user_id",
+                    "user_id",
+                )
+            else:
+                filtered_users_ids = csv_to_list("./csv/youtube/user.csv", "user_id")
+
+            print("This is not existed users in Post CSV ====> /n", filtered_users_ids)
+
 
             if filtered_users_ids:
-                for user_id in filtered_users_ids:
-                    youtubeUserVideosScraper(user_id)
+                print("Initiating Channel Videos Scrapping")
+                for channel_id in filtered_users_ids:
+                    youtubeChannelVideosScraper(channel_id)
+                    # youtubeChannelVideosScraper(filtered_users_ids[channel_id])
+
+            if os.path.exists("./csv/youtube/post.csv"):
+                filtered_user_videos_ids = difference_between_csv(
+                    "./csv/youtube/searched_user_videos.csv",
+                    "./csv/youtube/post.csv",
+                    "video_id",
+                    "post_id",
+                )
+            else:
+                filtered_user_videos_ids = csv_to_list(
+                    "./csv/youtube/searched_user_videos.csv", "video_id"
+                )
+
+            print("This Videos are not Data Extracted in Post CSV ====> /n", filtered_users_ids)
+
+            edited_array_video_id = []
+
+            for video_id in range(0, len(filtered_user_videos_ids)):
+                if video_id % 20 == 0:
+                    youtubeVideoDataScraper(edited_array_video_id)
+                    edited_array_video_id = []
+                else:
+                    edited_array_video_id.append(filtered_user_videos_ids[video_id])
 
             print("Youtube Data Scraped")
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)
 
 
-def youtubeUserDataScraper(user_id):
+def youtubeChannelDataScraper(channel_id: str):
     headers = {
         "x-rapidapi-key": youtubeApiKey,
         "x-rapidapi-host": youtubeApiHost,
@@ -299,7 +351,7 @@ def youtubeUserDataScraper(user_id):
     querystring = {
         "part": "brandingSettings,contentDetails, contentOwnerDetails, id, localizations, snippet, statistics, status, topicDetails",
         "key": "AIzaS9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6a7b8c9dTr",
-        "id": user_id,
+        "id": channel_id,
     }
 
     response = requests.get(
@@ -311,39 +363,51 @@ def youtubeUserDataScraper(user_id):
     if response.status_code == 200:
         data = response.json()
 
-        userData = data["items"][0]
+        if "items" in data and len(data.get("items")) != 0:
+            userData = data["items"][0]
 
-        print(userData["statistics"]["subscriberCount"])
-
-        if userData:
-
-            if "country" in userData["snippet"]:
-                if userData["snippet"]["country"] == "IN" and (
+            if (
+                not userData["snippet"].get("country")
+                or userData["snippet"].get("country") == "IN"
+            ):
+                if (
                     int(userData["statistics"]["subscriberCount"]) >= 5000
                     and int(userData["statistics"]["subscriberCount"]) <= 100000
                 ):
-                    # if int(userData["statistics"]["subscriberCount"]) >= 5000 and int(userData["statistics"]["subscriberCount"]) <= 100000:
-
                     modify_user_data = {
-                        "user_id": userData["id"],
-                        "username": userData["snippet"]["customUrl"],
-                        "full_name": userData["snippet"]["title"],
-                        "post_count": int(userData["statistics"]["videoCount"]),
-                        "post_frequency": int(userData["statistics"]["videoCount"]) / 5,
+                        "user_id": userData.get("id"),
+                        "username": userData.get("snippet").get("customUrl"),
+                        "full_name": userData["snippet"].get("title"),
+                        "post_count": int(userData["statistics"].get("videoCount")),
+                        "post_frequency": int(userData["statistics"].get("videoCount")) / 5,
                         "follower_count": int(
-                            userData["statistics"]["subscriberCount"]
+                            userData["statistics"].get("subscriberCount")
                         ),
                     }
-                    csvCreator(
-                        [modify_user_data], user_schema, "./csv/youtube/user.csv"
-                    )
-                    print("Channel is Added in list")
-                    # return modify_user_data
+                    csvCreator([modify_user_data], user_schema, "./csv/youtube/user.csv")
+                    print("Channel is Added in youtube/user.csv")
                 else:
-                    print("not Between Follower Count")
+
+                    modify_user_data = {
+                        "user_id": userData.get("id"),
+                        "username": userData.get("snippet").get("customUrl"),
+                        "full_name": userData["snippet"].get("title"),
+                        "post_count": int(userData["statistics"].get("videoCount")),
+                        "post_frequency": int(userData["statistics"].get("videoCount")) / 5,
+                        "follower_count": int(
+                            userData["statistics"].get("subscriberCount")
+                        ),
+                    }
+
+                    csvCreator(
+                        [modify_user_data],
+                        user_schema,
+                        "./csv/youtube/rejected_user.csv",
+                    )
+                    print("Channel is not Satisfied Follower Count range")
             else:
-                print("Another country value is existed")
+                print("Channel is not satisfy the Country Condition ")
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)

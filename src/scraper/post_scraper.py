@@ -52,10 +52,18 @@ def instagramUserPostScraper(user_id: str):
                         "post_id": item.get("id"),
                         "user_id": user_id,
                         "location": item.get("location"),
-                        "hashtags": item.get("caption").get("hashtags") if item.get("caption") else [],
+                        "hashtags": (
+                            item.get("caption").get("hashtags")
+                            if item.get("caption")
+                            else []
+                        ),
                         "likes_count": item.get("like_count"),
                         "comment_count": item.get("comment_count"),
-                        "created_at": item.get("caption").get("created_at") if item.get("caption") else None,
+                        "created_at": (
+                            item.get("caption").get("created_at")
+                            if item.get("caption")
+                            else None
+                        ),
                     }
                 )
 
@@ -67,7 +75,7 @@ def instagramUserPostScraper(user_id: str):
         print("Request failed with status code {response.status_code}")
 
 
-def youtubeUserVideosScraper(channel_id: str):
+def youtubeChannelVideosScraper(channel_id: str):
     headers = {
         "x-rapidapi-key": youtubeApiKey,
         "x-rapidapi-host": youtubeApiHost,
@@ -89,48 +97,74 @@ def youtubeUserVideosScraper(channel_id: str):
 
     if response.status_code == 200:
         data = response.json()
+
         if "items" in data:
             extracted_user_video_data = []
             for item in data["items"]:
                 extracted_user_video_data.append(
+                    # item["id"].get("videoId")
                     {
-                        "video_id": item["id"]["videoId"],
-                        "channel_id": item["snippet"]["channelId"],
-                        "title": item["snippet"]["title"],
-                        "publishedAt": item["snippet"]["publishedAt"],
+                        "video_id": item["id"].get("videoId"),
+                        "channel_id": item["snippet"].get("channelId"),
+                        "title": item["snippet"].get("title"),
+                        "publishedAt": item["snippet"].get("publishedAt"),
                     }
                 )
+
             csvCreator(
                 extracted_user_video_data,
                 searched_youtube_user_video_Schema,
                 "./csv/youtube/searched_user_videos.csv",
             )
 
-            print("Youtube User's Videos are Scraped")
+            # print("Youtube Channel Videos are Scraped")
 
-            filtered_user_videos_ids = csv_to_list(
-                "./csv/youtube/searched_user_videos.csv", "video_id"
-            )
+            # filtered_user_videos_ids = csv_to_list(
+            #     "./csv/youtube/searched_user_videos.csv", "video_id"
+            # )
 
-            # print("filtered_user_videos_ids", filtered_user_videos_ids)
-            youtubeVideoDataScraper(filtered_user_videos_ids)
+            # # print("filtered_user_videos_ids===================>/n", filtered_user_videos_ids)
+
+            # # if filtered_user_videos_ids:
+
+            # # print(filtered_user_videos_ids)
+
+            # edited_array_video_id=[]
+
+            # for video_id in range(0,len(filtered_user_videos_ids)) :
+            #     if(video_id % 20==0):
+            #         youtubeVideoDataScraper(edited_array_video_id)
+            #         edited_array_video_id=[]
+            #     else:
+            #         edited_array_video_id.append(filtered_user_videos_ids[video_id])
 
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)
 
 
 def youtubeVideoDataScraper(video_ids: list[str]):
+    # using a loop
+    # avoiding printing last comma
+    formatted_output = ""
+    for i, element in enumerate(video_ids):
+        formatted_output += element
+        if i != len(video_ids) - 1:
+            formatted_output += ","
+
+    # print("The formatted output is : ", str(formatted_output))
+
     headers = {
         "x-rapidapi-key": youtubeApiKey,
         "x-rapidapi-host": youtubeApiHost,
     }
 
     querystring = {
-        "part": " id,  localizations,  snippet, statistics, status,  topicDetails",
-        "key": "AIzaS9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6a7b8c9dTr",
-        "id": video_ids,
+        "part": " id, localizations, snippet, statistics, status, topicDetails",
+        "key": youtubeKey,
+        "id": str(formatted_output),
+        "maxResults": "50",
         "regionCode": "In",
     }
 
@@ -140,22 +174,29 @@ def youtubeVideoDataScraper(video_ids: list[str]):
 
     if response.status_code == 200:
         data = response.json()
-        if "items" in data:
+
+
+        if "items" in data and len(data["items"]) != 0:
+            # print("videos_data Data ========>", data["items"])
             extracted_videos_data = []
+            
             for item in data["items"]:
                 extracted_videos_data.append(
                     {
                         "post_id": item["id"],
-                        "user_id": item["snippet"]["channelId"],
+                        "user_id": item["snippet"].get("channelId"),
                         "location": "",
-                        "hashtags": "",
-                        "likes_count": item["statistics"]["likeCount"],
-                        "comment_count": item["statistics"]["commentCount"],
-                        "created_at": item["snippet"]["publishedAt"],
+                        "hashtags": item["snippet"].get("tags"),
+                        "likes_count": item["statistics"].get("likeCount"),
+                        "comment_count": item["statistics"].get("commentCount"),
+                        "created_at": item["snippet"].get("publishedAt"),
                     }
                 )
+
+            print("extracted_videos_data Data ========>", extracted_videos_data)
+
             csvCreator(extracted_videos_data, postSchema, "./csv/youtube/post.csv")
         else:
             print("No data found in the response.")
     else:
-        print("Request failed with status code {response.status_code}")
+        print("Request failed with status code", response.status_code)
